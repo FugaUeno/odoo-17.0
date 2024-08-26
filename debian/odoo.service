@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=odoo
 Group=odoo
-ExecStart=/opt/odoo/odoo-17.0/odoo-bin --config /etc/odoo/odoo.conf
+ExecStart=/opt/odoo/odoo-17.0/odoo-bin --config /etc/odoo.conf
 KillMode=mixed
 
 [Install]
