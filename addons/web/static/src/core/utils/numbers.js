@@ -1,7 +1,6 @@
 /** @odoo-module **/
 
 import { localization as l10n } from "@web/core/l10n/localization";
-import { _t } from "@web/core/l10n/translation";
 import { intersperse } from "@web/core/utils/strings";
 
 /**
@@ -117,44 +116,32 @@ export function insertThousandsSep(number, thousandsSep = ",", grouping = []) {
  * @returns {string}
  */
 export function humanNumber(number, options = { decimals: 0, minDigits: 1 }) {
-    const decimals = options.decimals || 0;
-    const minDigits = options.minDigits || 1;
-    const d2 = Math.pow(10, decimals);
-    const numberMagnitude = +number.toExponential().split("e+")[1];
-    number = Math.round(number * d2) / d2;
-    // the case numberMagnitude >= 21 corresponds to a number
-    // better expressed in the scientific format.
-    if (numberMagnitude >= 21) {
-        // we do not use number.toExponential(decimals) because we want to
-        // avoid the possible useless O decimals: 1e.+24 preferred to 1.0e+24
-        number = Math.round(number * Math.pow(10, decimals - numberMagnitude)) / d2;
-        return `${number}e+${numberMagnitude}`;
-    }
-    // note: we need to call toString here to make sure we manipulate the resulting
-    // string, not an object with a toString method.
-    const unitSymbols = _t("kMGTPE").toString();
-    const sign = Math.sign(number);
-    number = Math.abs(number);
-    let symbol = "";
-    for (let i = unitSymbols.length; i > 0; i--) {
-        const s = Math.pow(10, i * 3);
-        if (s <= number / Math.pow(10, minDigits - 1)) {
-            number = Math.round((number * d2) / s) / d2;
-            symbol = unitSymbols[i - 1];
-            break;
-        }
-    }
-    const { decimalPoint, grouping, thousandsSep } = l10n;
+    try {
+        const decimals = options.decimals || 0;
+        const d2 = Math.pow(10, decimals);
+        number = Math.round(number * d2) / d2;
 
-    // determine if we should keep the decimals (we don't want to display 1,020.02k for 1020020)
-    const decimalsToKeep = number >= 1000 ? 0 : decimals;
-    number = sign * number;
-    const [integerPart, decimalPart] = number.toFixed(decimalsToKeep).split(".");
-    const int = insertThousandsSep(integerPart, thousandsSep, grouping);
-    if (!decimalPart) {
-        return int + symbol;
+        const unitSymbols = ['万', '億', '兆'];
+        const unitValues = [1e4, 1e8, 1e12];
+        let symbol = '';
+        
+        for (let i = unitValues.length - 1; i >= 0; i--) {
+            if (number >= unitValues[i]) {
+                number = Math.round((number * d2) / unitValues[i]) / d2;
+                symbol = unitSymbols[i];
+                break;
+            }
+        }
+
+        if (!symbol) {
+            // 小さい数の場合、単位を付けずにそのまま返します
+            return number.toString();
+        }
+
+        return number.toString() + symbol;
+    } catch (error) {
+        return "計算不能";
     }
-    return int + decimalPoint + decimalPart + symbol;
 }
 
 /**
